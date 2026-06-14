@@ -20,7 +20,9 @@ async def get_expenses():
     Queries DynamoDB on GSI recordType index.
     """
     try:
-        expenses = dependencies.db_service.get_all_by_record_type("EXPENSE")
+        expenses = dependencies.db_service.get_all_by_record_type(
+            "EXPENSE", index_name="recordTypeIndex"
+        )
         return expenses
     except Exception as e:
         raise HTTPException(
@@ -68,3 +70,29 @@ async def create_expense(expense_data: ExpenseCreate):
         )
         
     return new_expense
+
+
+@router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_expense(expense_id: str):
+    """
+    Remove an expense from the database by its ID.
+    Raises 404 if the record does not exist or is not an EXPENSE.
+    """
+    try:
+        # Check if record exists first
+        record = dependencies.db_service.get_record(expense_id)
+        if not record or record.get("recordType") != "EXPENSE":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Expense with ID '{expense_id}' not found."
+            )
+        
+        dependencies.db_service.delete_record(expense_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting expense from database: {str(e)}"
+        )
+

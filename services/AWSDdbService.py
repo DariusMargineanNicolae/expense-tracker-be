@@ -9,7 +9,7 @@ class DynamoDbService:
         table_name: str,
     ):
 
-        self.dynamodb = boto3.resource("dynamodb")
+        self.dynamodb = boto3.resource("dynamodb", region_name="eu-west-2")
         self.table = self.dynamodb.Table(table_name)
 
     def create_record(self, item: dict) -> Dict[str, Any]:
