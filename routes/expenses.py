@@ -1,4 +1,6 @@
 import uuid
+import csv
+import io
 import time
 from datetime import datetime
 from typing import List
@@ -11,6 +13,65 @@ router = APIRouter(
     prefix="/expenses",
     tags=["expenses"],
 )
+
+
+@router.post("/export-csv", status_code=status.HTTP_201_CREATED)
+async def export_expenses_to_csv():
+    """
+    Get all expenses, format them as CSV, and upload to S3.
+    CSV filename matches current timestamp in milliseconds (e.g. 1718365200123.csv).
+    Returns information about the uploaded file in S3.
+    """
+    try:
+        # 1. Get all expenses
+        expenses = await get_expenses()
+        
+        # 2. Build CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(["id", "name", "recordType", "categoryId", "amount", "createdAt", "createdAtEpoch", "description"])
+        
+        # Write rows
+        for expense in expenses:
+            writer.writerow([
+                expense.get("id", ""),
+                expense.get("name", ""),
+                expense.get("recordType", "EXPENSE"),
+                expense.get("categoryId", ""),
+                str(expense.get("amount", "0")),
+                expense.get("createdAt", ""),
+                expense.get("createdAtEpoch", ""),
+                expense.get("description", "")
+            ])
+            
+        csv_content = output.getvalue().encode("utf-8")
+        
+        # 3. Generate filename using timestamp in milliseconds
+        timestamp_ms = int(time.time() * 1000)
+        filename = f"{timestamp_ms}.csv"
+        
+        # 4. Upload to S3
+        dependencies.s3_service.upload_file_content(
+            file_content=csv_content,
+            destination_key=filename,
+            content_type="text/csv"
+        )
+        
+        output.seek(0)
+        return {
+            "message": "Successfully exported and saved to S3.",
+            "bucket": dependencies.s3_service.bucket_name,
+            "filename": filename,
+            "record_count": len(expenses)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error exporting expenses to S3: {str(e)}"
+        )
 
 
 @router.get("", response_model=List[ExpenseResponse])
