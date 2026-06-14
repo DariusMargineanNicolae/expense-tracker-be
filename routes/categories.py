@@ -1,6 +1,10 @@
 import uuid
+import csv
+import io
+import time
 from typing import List
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 import dependencies
 from schemas import CategoryCreate, CategoryResponse
 
@@ -8,6 +12,62 @@ router = APIRouter(
     prefix="/categories",
     tags=["categories"],
 )
+
+
+@router.post("/export-csv", status_code=status.HTTP_201_CREATED)
+async def export_categories_to_csv():
+    """
+    Get all categories, format them as CSV, and upload to S3.
+    CSV filename matches current timestamp in milliseconds (e.g. 1718365200123.csv).
+    Returns information about the uploaded file in S3.
+    """
+    try:
+        # 1. Get all categories (uses cache / queries DDB)
+        categories = await get_categories()
+        
+        # 2. Build CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(["id", "name", "recordType", "description"])
+        
+        # Write rows
+        for category in categories:
+            writer.writerow([
+                category.get("id", ""),
+                category.get("name", ""),
+                category.get("recordType", "CATEGORY"),
+                category.get("description", "")
+            ])
+            
+        csv_content = output.getvalue().encode("utf-8")
+        
+        # 3. Generate filename using timestamp in milliseconds
+        timestamp_ms = int(time.time() * 1000)
+        filename = f"{timestamp_ms}.csv"
+        
+        # 4. Upload to S3
+        dependencies.s3_service.upload_file_content(
+            file_content=csv_content,
+            destination_key=filename,
+            content_type="text/csv"
+        )
+        
+        # Prepare streaming response for immediate download as well
+        output.seek(0)
+        return {
+            "message": "Successfully exported and saved to S3.",
+            "bucket": dependencies.s3_service.bucket_name,
+            "filename": filename,
+            "record_count": len(categories)
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error exporting categories to S3: {str(e)}"
+        )
 
 
 @router.get("", response_model=List[CategoryResponse])
