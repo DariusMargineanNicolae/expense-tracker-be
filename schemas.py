@@ -24,6 +24,8 @@ class ExpenseResponse(BaseModel):
     categoryId: str = Field(..., description="Identifier of the category")
     createdAt: str = Field(..., description="ISO 8601 UTC timestamp string when the record was created")
     createdAtEpoch: int = Field(..., description="UNIX Epoch time in seconds when the record was created")
+    expenseDate: str = Field(..., description="ISO 8601 string representing when the expense actually occurred")
+    expenseDateEpoch: int = Field(..., description="UNIX Epoch time in seconds representing when the expense actually occurred")
     description: Optional[str] = Field(None, description="Optional description of the expense")
     amount: Decimal = Field(..., description="Amount of the expense", gt=0)
 
@@ -31,5 +33,6 @@ class ExpenseResponse(BaseModel):
 class ExpenseCreate(BaseModel):
     name: str = Field(..., description="Name of the expense", min_length=1)
     categoryId: str = Field(..., description="Identifier of the category")
+    expenseDate: Optional[str] = Field(None, description="ISO 8601 string representing when the expense actually occurred. Defaults to current UTC time if not provided.")
     description: Optional[str] = Field(None, description="Optional description of the expense")
     amount: Decimal = Field(..., description="Amount of the expense", gt=0)
