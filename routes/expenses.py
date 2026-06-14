@@ -57,7 +57,9 @@ async def create_expense(expense_data: ExpenseCreate):
         "recordType": "EXPENSE",
         "categoryId": expense_data.categoryId,
         "createdAt": created_at,
-        "createdAtEpoch": created_at_epoch
+        "createdAtEpoch": created_at_epoch,
+        "description": expense_data.description,
+        "amount": expense_data.amount
     }
     
     try:

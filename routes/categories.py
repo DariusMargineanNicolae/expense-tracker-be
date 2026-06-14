@@ -41,7 +41,8 @@ async def create_category(category_data: CategoryCreate):
     new_category = {
         "id": category_id,
         "name": category_data.name,
-        "recordType": "CATEGORY"
+        "recordType": "CATEGORY",
+        "description": category_data.description
     }
     
     try:
