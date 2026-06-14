@@ -1,0 +1,6 @@
+import os
+
+
+class Options:
+    EXPENSES_TABLE_NAME = os.getenv("EXPENSES_TRACKER_DDB_TABLE_NAME")
+    EXPENSES_S3_BUCKET_NAME = os.getenv("EXPENSES_TRACKER_S3_BUCKET_NAME")
