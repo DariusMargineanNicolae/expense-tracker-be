@@ -35,7 +35,7 @@ async def export_expenses_to_csv():
         writer = csv.writer(output)
         
         # Write headers
-        writer.writerow(["Nume", "numele categoriei", "Suma", "expenseDate-ul", "descriere"])
+        writer.writerow(["Nume", "Categorie", "Suma", "Data", "Descriere"])
         
         # Write rows
         for expense in expenses:
